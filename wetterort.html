@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note editieren</title>
+</head>
+
+<body>
+
+    <h1>Note editieren</h1>
+    <form id="dataForm" onsubmit="submitForm(event)">
+        <label for="stadt">Stadt:</label>
+        <input type="text" name="stadt" id="stadt" required><br><br>
+
+        <label for="land">Land:</label>
+        <input type="text" name="land" id="land" required><br><br>
+
+        <label for="bild"></label>
+        <input type="file" name="bild" id="bild" required><br><br>
+
+        <button type="submit">Stadt Speichern</button>
+    </form>
+
+    <script>
+
+        let existingStadt = null;
+
+        function loadExistingDataFromPocketbase(existingStadtId) {
+            /**
+             * Aufgabe 1:
+             * Schreibe Code, welcher die Daten einer bestehenden Note anhand der existingNoteId aus Pocketbase lädt.
+             * Sobald der eine Datensatz geladen wurde, soll die Funktion "insertExistingDataIntoForm()" aufgerufen werden.
+             * */
+            fetch('https://pb-stma.toiwxr.easypanel.host/api/collections/Ortschaft/records/' + existingStadtId, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("test", data);
+                    insertExistingDataIntoForm(data);
+                })
+                .catch((error) => {
+                    alert('Ein Fehler beim Laden der Daten ist aufgetreten. Bitte versuchen Sie es später erneut.');
+                    console.error('Error:', error);
+                });
+        }
+
+        function insertExistingDataIntoForm(data) {
+            existingStadt = data;
+            /**
+             * Aufgabe 2:
+             * Schreibe Code, welcher die Daten der bestehenden Note in das Formular einfügt.
+             * Im Feld "note" soll die Note eingetragen werden und im Feld "fach" das Fach.
+             * */
+            const form = document.getElementById('dataForm');
+            form.stadt.value = data.datum;
+            form.land.value = data.land;
+            form.bild.value = data.bild;
+        }
+
+
+function submitForm(event) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target); // Create FormData object from the form
+
+    // Log the FormData for debugging
+    for (let [key, value] of formData.entries()) {
+        console.log(key, value); // This will show the file as a Blob
+    }
+
+    if (existingStadt) {
+        // Update existing record
+        fetch('https://pb02.toiwxr.easypanel.host/api/collections/Ortschaft/records/' + existingStadt.id, {
+            method: 'PATCH',
+            body: formData // Send FormData directly
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Daten erfolgreich aktualisiert');
+            window.location.href = 'Wetterberichter.html';
+        })
+        .catch((error) => {
+            alert('Ein Fehler beim senden der Daten ist aufgetreten. Bitte versuchen Sie es später erneut.');
+            console.error('Error:', error);
+        });
+    } else {
+        // Create new record
+        fetch('https://pb02.toiwxr.easypanel.host/api/collections/Ortschaft/records', {
+            method: 'POST',
+            body: formData // Send FormData directly
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Daten erfolgreich gesendet');
+            window.location.href = 'Wetterberichter.html';
+        })
+        .catch((error) => {
+            alert('Ein Fehler beim senden der Daten ist aufgetreten. Bitte versuchen Sie es später erneut.');
+            console.error('Error:', error);
+        });
+    }
+}
+
+
+        function createJsObjectFromHtmlForm(form) {
+            const formData = new FormData(event.target);
+            const fileInput = document.getElementById('bild');
+
+            console.log(formData);
+            const data = {};
+
+            for (let [key, value] of formData.entries()) {
+                if (value === 'on') {
+                    value = true;
+                }
+                if (value === 'off') {
+                    value = false;
+                }
+                data[key] = value;
+            }
+            return data;
+        }
+
+
+        /**
+         * Dieser Code liest die URL aus und extrahiert den Query-Parameter "noteId".
+         * Wenn in der URL der Query Parameter angegeben wurde, wird die Funktion "loadExistingDataFromPocketbase()" aufgerufen.
+         * */
+        const url = window.location.href;
+        const queryParams = new URLSearchParams(url);
+        const existingDatumId = Array.from(queryParams.values()).find(x => !!x);
+        console.log(existingDatumId)
+        if (existingDatumId) {
+            loadExistingDataFromPocketbase(existingStadtId);
+        }
+    </script>
+
+</body>
+
+</html>
