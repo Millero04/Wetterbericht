@@ -9,8 +9,8 @@
 
 <body>
 
-    <h1>Notenübersicht</h1>
-    <p>Notenschnitt
+    <h1>Wetterberichter</h1>
+    <p>Temperatur & Ort
         <span id="schnitt">
             <!-- Hier kommt der Notenschnitt rein -->
         </span>
@@ -47,7 +47,36 @@
     <br>
     <a href="wetterort.html">Stadt hinzufügen</a>
 
+    <h1>Kontaktiere Uns</h1>
+    <form id="contactForm" onsubmit="submitForm(event)">
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name" required><br><br>
+        <label for="email">Email:</label><br>
+        <input type="email" id="email" name="email" required><br><br>
+        <label for="message">Message:</label><br>
+        <textarea id="message" name="message" required></textarea><br><br>
+        <button type="submit">Send</button>
+    </form>
+      <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody3">
+            <!-- Hier kommen die Noten rein -->
+        </tbody>
+    </table>
+
+    <br>
+
+    <!-- PocketBase SDK -->
+    <script src="https://unpkg.com/pocketbase@0.7.11/pocketbase.min.js"></script>
     <script>
+                let item = null;
+
         function fetchTempData() {
             fetch('https://pb02.toiwxr.easypanel.host/api/collections/Temperatur/records', {
                 method: 'GET',
@@ -75,6 +104,23 @@
                 .then(response => response.json())
                 .then(data => {
                     displayStadtData(data);
+                })
+                .catch((error) => {
+                    alert('Ein Fehler beim Laden der Daten ist aufgetreten. Bitte versuchen Sie es später erneut.');
+                    console.error('Error:', error);
+                });
+        }
+        
+         function fetchContactData() {
+            fetch('https://pb02.toiwxr.easypanel.host/api/collections/contactForm/records', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    displayContactData(data);
                 })
                 .catch((error) => {
                     alert('Ein Fehler beim Laden der Daten ist aufgetreten. Bitte versuchen Sie es später erneut.');
@@ -133,6 +179,29 @@
             tableBodyElement.innerHTML = innerHtml;
         }
 
+        function displayContactData(data) {
+            console.log(data)
+            const items = data.items;
+
+            const tableBodyElement = document.getElementById('tableBody3');
+            tableBodyElement.innerHTML = '';
+
+            let innerHtml = '';
+            for (let item of items) {
+                /**
+                 * Aufgabe 1
+                 * Ergänzen Sie den HTML Code, sodass neben jeder Note ein "bearbeiten" button angezeigt wird.
+                 * */
+                innerHtml += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.email}</td>
+                        <td>${item.message}</td>
+                    </tr>`;
+            }
+            tableBodyElement.innerHTML = innerHtml;
+        }
+    
         /***
          * Aufgabe 2
          * Diese Funktion muss aufgerugen werden, wenn der Benutzer neben einer Note auf "bearbeiten" klickt.
@@ -184,6 +253,108 @@
         }
 
         fetchStadtData();
+
+         fetchContactData();
+        // ------------------------------
+        // CONTACT FORM POCKETBASE CODE
+        // ------------------------------
+        /*document.getElementById('contactForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const data = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                message: document.getElementById('message').value
+            };
+
+            try {
+                await pb.collection('contacts').create(data);
+                alert('Message sent successfully!');
+                document.getElementById('contactForm').reset();
+            } catch (error) {
+                alert('Failed to send message: ' + error.message);
+            }
+
+             // Collect form data
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    const message = document.getElementById('message').value;*/
+
+    // Prepare data for PocketBase
+        function submitForm(event) {
+            event.preventDefault();
+debugger;
+            /**
+             * Mithilfe der createJsObjectFromHtmlForm() können Daten als JavaScript Object 
+             * aus dem Formular ausgelesen werden.
+             * */
+            const data = createJsObjectFromHtmlForm(event);
+            console.log(data); // in der Konsole sieht man wie das JavaScript Object aussieht sobald man auf "Daten Senden" klickt.
+
+            /**
+             * Die Daten werden als JSON String an den Server gesendet.
+             * Schreibe Code, welchen das JavaScript Object der Konstante "data" in einen JSON String umwandelt.
+             * */
+            const jsonBody = JSON.stringify(data);
+
+            if (item && item.id) {
+                /**
+                 * Aufgabe 3:
+                 * Schreibe Code, welcher die Daten der bestehenden Note aktualisiert.
+                 * Sobald die Daten erfolgreich aktualisiert wurden, soll der Benutzer auf die "notenuebersicht.html" Seite weitergeleitet werden.
+                 * 
+                 * Hinweis: Bei der Url muss die ID des bestehenden Datensatzes am ende angegeben werden. -> /records/ID
+                 * Hinweis: Um einen Datensatz zu aktualisieren, muss die Methode "PATCH" verwendet werden.
+                 * */
+                fetch('https://pb02.toiwxr.easypanel.host/api/collections/contactForm/records' + item.id, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: jsonBody
+                })
+                    .then(data => {
+                        alert('Daten erfolgreich aktualisiert');
+                    })
+                    .catch((error) => {
+                        alert('Ein Fehler beim senden der Daten ist aufgetreten. Bitte versuchen Sie es später erneut.')
+                        console.error('Error:', error);
+                    });
+            } else {
+                fetch('https://pb02.toiwxr.easypanel.host/api/collections/contactForm/records', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: jsonBody
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert('Daten erfolgreich gesendet');
+                    })
+                    .catch((error) => {
+                        alert('Ein Fehler beim senden der Daten ist aufgetreten. Bitte versuchen Sie es später erneut.')
+                        console.error('Error:', error);
+                    });
+            }
+        }  
+        
+        function createJsObjectFromHtmlForm(form) {
+            const formData = new FormData(event.target);
+            const data = {};
+
+            for (let [key, value] of formData.entries()) {
+                if (value === 'on') {
+                    value = true;
+                }
+                if (value === 'off') {
+                    value = false;
+                }
+                data[key] = value;
+            }
+            return data;
+        }
+      //  });
     </script>
 
 </body>
